@@ -2,3 +2,5 @@
 /Bachelor.code-workspace
 /example_input
 /thesis
+*.pyc 
+*.txt
