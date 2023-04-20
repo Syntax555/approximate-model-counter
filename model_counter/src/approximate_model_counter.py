@@ -1,5 +1,5 @@
-import math
-import random
+import numpy as np
+
 from cnf_parser import read_cnf_file
 from walk_sat import walk_sat
 from gsat import gsat
@@ -12,11 +12,10 @@ def approximate_model_counter(filename, algorithm, num_samples):
     print('Approximate number of satisfying terms: {}'.format(count))
 
 
-def count_satisfying_terms(num_vars, clauses, algorithm, num_samples):
-    count = 0
+def count_satisfying_terms(num_vars, clauses, algorithm, num_samples, num_bootstraps=1000):
+    unique_solutions = set()
     num_solutions = 0
-    
-    # Iterate until we have collected the desired number of samples
+
     while num_solutions < num_samples:
         if algorithm == 'walk_sat':
             solution = walk_sat(clauses, num_vars, max_flips=1000, p=0.5)
@@ -26,22 +25,23 @@ def count_satisfying_terms(num_vars, clauses, algorithm, num_samples):
             solution = simulated_annealing(clauses, num_vars, max_iterations=1000, temperature=0.5, cooling_rate=0.99)
         else:
             raise ValueError('Invalid algorithm: {}'.format(algorithm))
-        
-        # If the solution is a satisfying assignment, increment the count
-        if is_satisfying(solution, clauses):
-            count += 1
+
+        if is_unique(solution, clauses):
+            unique_solutions.add(tuple(solution))
         num_solutions += 1
 
-        estimated_count = count / num_solutions * num_samples
-        margin_of_error = 1.96 * math.sqrt(estimated_count * (1 - estimated_count / num_samples)) / math.sqrt(num_samples)
-        lower_bound = estimated_count - margin_of_error
-        upper_bound = estimated_count + margin_of_error
-        if lower_bound <= num_samples <= upper_bound:
-            break
-    
-    return count
+    # Bootstrap resampling to estimate the count
+    bootstrap_counts = []
+    for _ in range(num_bootstraps):
+        resampled_solutions = np.random.choice(list(unique_solutions), size=num_samples, replace=True)
+        unique_resampled_solutions = set(resampled_solutions)
+        count = len(unique_resampled_solutions)
+        bootstrap_counts.append(count)
 
-def is_satisfying(solution, clauses):
+    estimated_count = np.mean(bootstrap_counts)
+    return estimated_count
+
+def is_unique(solution, clauses):
     for clause in clauses:
         clause_satisfied = False
         for literal in clause:
