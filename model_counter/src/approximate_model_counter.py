@@ -1,3 +1,4 @@
+import random
 import numpy as np
 
 from cnf_parser import read_cnf_file
@@ -12,17 +13,20 @@ def approximate_model_counter(filename, algorithm, num_samples):
     print('Approximate number of satisfying terms: {}'.format(count))
 
 
-def count_satisfying_terms(num_vars, clauses, algorithm, num_samples, num_bootstraps=1000):
+def count_satisfying_terms(num_vars, clauses, algorithms, num_samples, num_bootstraps=1000):
     unique_solutions = set()
     num_solutions = 0
 
     while num_solutions < num_samples:
+        # Choose a random algorithm for each iteration
+        algorithm = random.choice(algorithms)
+
         if algorithm == 'walk_sat':
-            solution = walk_sat(clauses, num_vars, max_flips=1000, p=0.5)
+            solution = walk_sat(clauses, num_vars, max_flips=1000, p=random.uniform(0, 1))
         elif algorithm == 'gsat':
-            solution = gsat(clauses, num_vars, max_flips=1000, p=0.5)
+            solution = gsat(clauses, num_vars, max_flips=1000, p=random.uniform(0, 1))
         elif algorithm == 'simulated_annealing':
-            solution = simulated_annealing(clauses, num_vars, max_iterations=1000, temperature=0.5, cooling_rate=0.99)
+            solution = simulated_annealing(clauses, num_vars, max_iterations=1000, temperature=random.uniform(0.1, 1), cooling_rate=random.uniform(0.95, 0.99))
         else:
             raise ValueError('Invalid algorithm: {}'.format(algorithm))
 
